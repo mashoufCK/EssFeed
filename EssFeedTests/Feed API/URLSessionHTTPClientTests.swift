@@ -17,6 +17,7 @@ class URLSessionHTTPClient {
     }
     
     func get(from url: URL, completion: @escaping (HTTPClientResult) -> Void) {
+       //let url = URL(string: "http://wrong-url.com")!
         session.dataTask(with: url)  { _, _, error in
             if let error = error {
                 completion(.failure(error))
@@ -27,10 +28,21 @@ class URLSessionHTTPClient {
 
 class URLSessionHTTPClientTests: XCTestCase {
     
-    func test_getFromURL_performsGETRequestsWihURL() {
+    override func setUp() {
+         super.setUp()
         
         URLProtocolStub.startInterceptingRequests()
 
+    }
+    
+    override func tearDown() {
+        super.tearDown()
+        
+        URLProtocolStub.stopInterceptingRequests()
+    }
+    
+    func test_getFromURL_performsGETRequestsWihURL() {
+        
         let url = URL(string: "http://any-url.com")!
         let exp = expectation(description: "Wait for request")
         URLProtocolStub.observeRequest {request in
@@ -40,12 +52,10 @@ class URLSessionHTTPClientTests: XCTestCase {
         }
         URLSessionHTTPClient().get(from: url, completion: { _ in })
         wait(for: [exp], timeout: 1.0)
-        URLProtocolStub.stopInterceptingRequests()
 
     }
     
     func test_getFromURL_failsOnRequestError() {
-        URLProtocolStub.startInterceptingRequests()
         let url = URL(string: "http://any-url.com")!
         let error = NSError(domain: "any error", code: 1)
         URLProtocolStub.stub(data: nil, response: nil,  error: error)
@@ -55,6 +65,7 @@ class URLSessionHTTPClientTests: XCTestCase {
         let exp  = expectation(description: "Wait for completion")
         
         sut.get(from: url) {result in
+            print(url)
             switch result {
             case let .failure(receivedError as NSError):
                 XCTAssertEqual(receivedError, error)
@@ -65,7 +76,6 @@ class URLSessionHTTPClientTests: XCTestCase {
         }
         
         wait(for: [exp], timeout: 1.0)
-        URLProtocolStub.stopInterceptingRequests()
     }
     
     //MARK: - Helpers
